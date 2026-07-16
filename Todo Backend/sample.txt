@@ -1,0 +1,9 @@
+Flutter
+    │
+    │ WebSocket
+    │
+FastAPI WebSocket
+    │
+Notification Manager
+    │
+PostgreSQL

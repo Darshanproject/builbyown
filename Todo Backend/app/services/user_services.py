@@ -1,0 +1,30 @@
+from uuid import UUID
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.user import User
+
+
+class UserService:
+
+    @staticmethod
+    async def get_user(
+        db: AsyncSession,
+        user_id: UUID
+    ):
+        result = await db.execute(
+            select(User).where(User.id == user_id)
+        )
+
+        return result.scalar_one_or_none()
+
+    @staticmethod
+    async def get_all_users(
+        db: AsyncSession
+    ):
+        result = await db.execute(
+            select(User)
+        )
+
+        return result.scalars().all()

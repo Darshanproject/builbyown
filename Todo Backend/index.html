@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<button onclick="connect()">Connect</button>
+<button onclick="send()">Send</button>
+
+<script>
+let socket;
+
+function connect() {
+    socket = new WebSocket("ws://127.0.0.1:8000/ws/1");
+
+    socket.onopen = () => console.log("Connected");
+
+    socket.onmessage = (e) => console.log(e.data);
+
+    socket.onerror = (e) => console.log(e);
+
+    socket.onclose = () => console.log("Closed");
+}
+
+function send() {
+    socket.send("Hello");
+}
+</script>
+
+</body>
+</html>
