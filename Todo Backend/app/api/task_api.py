@@ -285,7 +285,7 @@ from genericpath import samefile
 from uuid import UUID
 from datetime import date, timedelta
 from app.services.user_services import UserService  
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -325,7 +325,7 @@ async def create_task(
     db,
     current_user.id,
     "Recurring Task Created",
-    f"Next occurrence of '{current_user.title}' has been scheduled."
+    f"Next occurrence of '{Task.title}' has been scheduled."
 )
     return await TaskService.create_task(
         db,
@@ -337,16 +337,51 @@ async def create_task(
 # ---------------- ALL TASKS ----------------
 
 @router.get("/")
-async def get_tasks(
-        db: AsyncSession = Depends(get_db),
-        current_user=Depends(get_current_user)
-):
 
-    return await TaskService.get_tasks(
-        db,
-        current_user.id
+# async def get_tasks(
+#         db: AsyncSession = Depends(get_db),
+#         current_user=Depends(get_current_user)
+# ):
+
+#     return await TaskService.get_tasks(
+#         db,
+#         current_user.id
+#     )
+async def get_tasks(
+    date: date | None = Query(None),
+    start_date: date | None = Query(None),
+    end_date: date | None = Query(None),
+    db: AsyncSession = Depends(get_db),
+    current_user: Task.user_id = Depends(get_current_user), # type: ignore
+):
+    query = select(Task).where(
+        Task.user_id == current_user.id
     )
 
+    if date:
+        query = query.where(
+            Task.due_date == date
+        )
+
+    if start_date:
+        query = query.where(
+            Task.due_date >= start_date
+        )
+
+    if end_date:
+        query = query.where(
+            Task.due_date <= end_date
+        )
+
+    query = query.order_by(
+        Task.due_date.asc()
+    )
+
+    result = await db.execute(query)
+
+    tasks = result.scalars().all()
+
+    return tasks
 
 # ---------------- SEARCH ----------------
 
@@ -519,20 +554,43 @@ async def get_task(
 
 # ---------------- UPDATE TASK ----------------
 
+# @router.put("/{task_id}")
+# async def update_task(
+#         task_id: UUID,
+#         payload: UpdateTaskSchema,
+#         db: AsyncSession = Depends(get_db)
+# ):
+#     await ActivityService.log(
+#     db,
+#     task.user_id,
+#     f'Updated task "{task.title}"'
+# )
+#     task = await TaskService.get_task(
+#         db,
+#         task_id
+#     )
+
+#     return await TaskService.update_task(
+#         db,
+#         task,
+#         payload
+#     )
+
 @router.put("/{task_id}")
 async def update_task(
-        task_id: UUID,
-        payload: UpdateTaskSchema,
-        db: AsyncSession = Depends(get_db)
+    task_id: UUID,
+    payload: UpdateTaskSchema,
+    db: AsyncSession = Depends(get_db)
 ):
-    await ActivityService.log(
-    db,
-    task.user_id,
-    f'Updated task "{task.title}"'
-)
     task = await TaskService.get_task(
         db,
         task_id
+    )
+
+    await ActivityService.log(
+        db,
+        task.user_id,
+        f'Updated task "{task.title}"'
     )
 
     return await TaskService.update_task(
@@ -541,33 +599,57 @@ async def update_task(
         payload
     )
 
-
 # ---------------- DELETE TASK ----------------
 
+# @router.delete("/{task_id}")
+# async def delete_task(
+#         task_id: UUID,
+#         db: AsyncSession = Depends(get_db)
+# ):
+#     await ActivityService.log(
+#     db,
+#     task.user_id,
+#     f'Deleted task "{task.title}"'
+# )
+#     task = await TaskService.get_task(
+#         db,
+#         task_id
+#     )
+
+#     await TaskService.delete_task(
+#         db,
+#         task
+#     )
+
+#     return {
+#         "message": "Task deleted successfully"
+#     }
 @router.delete("/{task_id}")
 async def delete_task(
-        task_id: UUID,
-        db: AsyncSession = Depends(get_db)
+    task_id: UUID,
+    db: AsyncSession = Depends(get_db)
 ):
-    await ActivityService.log(
-    db,
-    task.user_id,
-    f'Deleted task "{task.title}"'
-)
     task = await TaskService.get_task(
         db,
         task_id
     )
 
-    await TaskService.delete_task(
+    if task is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Task not found"
+        )
+
+    await ActivityService.log(
+        db,
+        task.user_id,
+        f'Deleted task "{task.title}"'
+    )
+
+    return await TaskService.delete_task(
         db,
         task
     )
-
-    return {
-        "message": "Task deleted successfully"
-    }
-
 
 # ---------------- COMPLETE TASK ----------------
 

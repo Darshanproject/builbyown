@@ -87,23 +87,35 @@ class TaskService:
 
      return task
     
+#     @staticmethod
+#     async def delete_task(
+#         db: AsyncSession,
+#         task
+# ):
+
+#      await db.delete(task)
+
+#      await db.commit()
+#      await db.refresh(task)
+#      await NotificationService.create_notification(
+#     db,
+#     task.user_id,
+#     "Task Deleted",
+#     f"{task.title} deleted."
+# )
+#      return {"message": "Task deleted successfully"}
     @staticmethod
     async def delete_task(
-        db: AsyncSession,
-        task
+    db: AsyncSession,
+    task: Task
 ):
+        await db.delete(task)
 
-     await db.delete(task)
+        await db.commit()
 
-     await db.commit()
-     await db.refresh(task)
-     await NotificationService.create_notification(
-    db,
-    task.user_id,
-    "Task Deleted",
-    f"{task.title} deleted."
-)
-     return {"message": "Task deleted successfully"}
+        return {
+        "message": "Task deleted successfully"
+    }
     
     @staticmethod
     async def completed_task(
